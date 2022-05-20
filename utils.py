@@ -28,7 +28,7 @@ def get_data():
     validation[ITEM_COL_NAME_IN_DATASET].replace(item_unique, new_items_index, inplace=True)   #replacing each unique item with a new item id (in ascending and continuous order) - Validation
     train.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL,ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
     validation.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL, ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
-    validation= validation.to_numpy()
+    validation = validation.to_numpy()
     
     return train, validation
 
@@ -40,5 +40,12 @@ class Config:
     def _set_attributes(self, kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-            
-print(get_data()[1].shape)
+
+
+from scipy import sparse
+data = get_data()
+data = data[0]
+# print(data[0][1050:1055].head())
+
+matx = sparse.csc_matrix(data[:, RATINGS_COL_INDEX], (data[:, USERS_COL_INDEX], data[:, ITEMS_COL_INDEX]))
+print(matx)

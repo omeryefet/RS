@@ -7,7 +7,7 @@ class SimpleMean(Regressor):
         self.user_means = {}
 
     def fit(self, X):
-        big_dict= (X.groupby(['user'])[["rating"]].mean().to_dict())
+        big_dict = (X.groupby(['user'])[["rating"]].mean().to_dict())
         self.user_means = big_dict["rating"]                       #dict that holds the avg rating for each user
 
     def predict_on_pair(self, user: int, item: int):

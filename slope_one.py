@@ -44,12 +44,13 @@ class SlopeOne(Regressor):
         return calc/total_weight
 
     def upload_params(self):
-        with open (POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'r') as file:
+        with open(POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'rb') as file:
             self.matrix = pickle.load(file)
 
     def save_params(self):
-        with open (POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'w') as file:
+        with open(POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'wb') as file:
             pickle.dump(self.matrix, file, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 if __name__ == '__main__':
     train, validation = get_data()

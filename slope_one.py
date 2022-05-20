@@ -1,7 +1,8 @@
 
 from interface import Regressor
 from utils import get_data
-
+import numpy as np
+from config import *
 
 class SlopeOne(Regressor):
     def __init__(self):
@@ -9,11 +10,18 @@ class SlopeOne(Regressor):
         
 
     def fit(self, X: np.array):
-       raise NotImplementedError
+        self.build_popularity_difference_dict(X)
 
     def build_popularity_difference_dict(self, data):
-        raise NotImplementedError
-
+        for movie1 in data[USER_COL_NAME_IN_DATAEST]:
+            for movie2 in data[ITEM_COL_NAME_IN_DATASET]:
+                 
+    def calc_difference(item1, item2): 
+        '''
+        item = {mid,rank}
+        '''
+                  
+                
     def predict_on_pair(self, user: int, item: int):
         raise NotImplementedError
 

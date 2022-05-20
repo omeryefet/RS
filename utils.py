@@ -20,6 +20,16 @@ def get_data():
     new_ids = validation[validation[ITEM_COL_NAME_IN_DATASET].isin(uniqe_lst) == False]  #holding the rows in validation data that have an item that doesnt exists in train data
     index_to_change = new_ids.index  #holding the index of these rows
     validation[ITEM_COL_NAME_IN_DATASET][index_to_change] = np.nan
+    
+    item_unique = sorted(uniqe_lst)                                                  #list of sorted unique items from train data
+    new_items_index = list(range(len(item_unique)))                                  #list of new item ids (in ascending and continuous order)
+    '''we replaced the same items with the same new item indexes in both train and validation:'''
+    train[ITEM_COL_NAME_IN_DATASET].replace(item_unique, new_items_index, inplace=True) #replacing each unique item with a new item id (in ascending and continuous order) - Train
+    validation[ITEM_COL_NAME_IN_DATASET].replace(item_unique, new_items_index, inplace=True)   #replacing each unique item with a new item id (in ascending and continuous order) - Validation
+    train.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL,ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
+    validation.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL, ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
+    validation= validation.to_numpy()
+    
     return train, validation
 
 
@@ -31,4 +41,4 @@ class Config:
         for key, value in kwargs.items():
             setattr(self, key, value)
             
-print(get_data())
+print(get_data()[1].shape)

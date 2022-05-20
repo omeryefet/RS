@@ -6,10 +6,6 @@ from scipy.sparse import csc_matrix
 import pickle
 from os import path
 from tqdm import tqdm
-import warnings
-
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-
 
 class SlopeOne(Regressor):
     def __init__(self):

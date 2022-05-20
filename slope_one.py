@@ -7,20 +7,22 @@ import pickle
 from os import path
 from tqdm import tqdm
 
+
 class SlopeOne(Regressor):
     def __init__(self):
+        self.matrix = None
         self.popularity_differences = {}
         if path.exists(POPULARITY_DIFFERENCES_PARAMS_FILE_PATH):
-            self.matrix = self.upload_params()
-        else:
-            self.matrix = None
+            self.upload_params()
 
     def fit(self, X: np.array):
-        self.build_popularity_difference_dict(X)
+        if not self.popularity_differences:
+            self.build_popularity_difference_dict(X)
+            self.save_params()
 
     def build_popularity_difference_dict(self, data):
         self.matrix = csc_matrix((data[:, RATINGS_COL_INDEX], (data[:, USERS_COL_INDEX], data[:, ITEMS_COL_INDEX]))).toarray()
-        # self.matrix = np.array([[5,3,2],[3,4,0],[0,2,5]])
+        #self.matrix = np.array([[5,3,2],[3,4,0],[0,2,5]])
         for i in tqdm(range(self.matrix.shape[1])):
             for j in range(self.matrix.shape[1]):
                 if not self.popularity_differences.get((i,j)):
@@ -34,10 +36,10 @@ class SlopeOne(Regressor):
                         self.popularity_differences[(j,i)] = (- pd_vec, np.sum(bool_vector, dtype=np.float16))
 
     def predict_on_pair(self, user: int, item: int):
-        user_items = self.matrix[user,]
+        user_items = self.matrix[user, :]
         calc = 0
         total_weight = 0
-        for i,rank in enumerate(user_items):
+        for i, rank in enumerate(user_items):
             if rank != 0:
                 calc += (user_items[i] + self.popularity_differences[(item,i)][0]) * self.popularity_differences[(item,i)][1]
                 total_weight += self.popularity_differences[(item,i)][1]
@@ -45,16 +47,15 @@ class SlopeOne(Regressor):
 
     def upload_params(self):
         with open(POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'rb') as file:
-            self.matrix = pickle.load(file)
+            self.popularity_differences = pickle.load(file)
 
     def save_params(self):
         with open(POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'wb') as file:
-            pickle.dump(self.matrix, file, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.popularity_differences, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
     train, validation = get_data()
     slope_one = SlopeOne()
     slope_one.fit(train)
-    slope_one.save_params()
     print(slope_one.calculate_rmse(validation))

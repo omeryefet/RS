@@ -24,14 +24,11 @@ class KnnUserSimilarity(Regressor):
         self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
         if not self.corr:
             self.build_item_to_itm_corr_dict(X)
-            self.save_params()
-
+            # self.save_params()
 
     def build_item_to_itm_corr_dict(self, data):
-        pairs = set()
         for i in tqdm(range(self.matrix.shape[0])):
             for j in range(i+1, self.matrix.shape[0]):
-                pairs.add((i,j))
                 if i != j:
                     user1 = np.array(self.matrix[i, :], dtype=np.int16)
                     user2 = np.array(self.matrix[j, :], dtype=np.int16)
@@ -39,22 +36,31 @@ class KnnUserSimilarity(Regressor):
                     user1 = user1[bool_vector]
                     user2 = user2[bool_vector]
                     if any(user1 * user2):
-                        # users_corr = np.corrcoef(user1,user2)[0,1]
-                        users_corr = 1
+                        #users_corr = np.random.uniform(-1,1)
+                        users_corr = np.corrcoef(user1,user2)[0,1]
+                        #users_corr = 1
                     else:
                         users_corr = 0
-                    self.corr[i].append((j,users_corr))
-                    # self.corr[j].append((i,users_corr))
-        for user,corr_list in self.corr.items():
-            print(len(self.corr[user]))
+                    self.corr[i].append((j, users_corr))
+                    self.corr[j].append((i, users_corr))
+        for user, corr_list in self.corr.items():
             self.corr[user] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 
     def predict_on_pair(self, user: int, item: int):
         if item != -1:
             if item == 409:
+                print(user)
                 print(item)
-            k_nearest_users = [self.corr[user][i][0] for i in range(self.k)]
-            return mode(k_nearest_users)
+                x = self.corr[user]
+                k_nearest_users = []
+                for i in range(self.k):
+                    print(self.corr[user])
+                    z = self.corr[user][i]
+                    print(z[0])
+
+            #k_nearest_users = [self.corr[user][i][0] for i in range(self.k)]
+            #return mode(k_nearest_users)
+            return 1
         else:
             return 3 # TODO - check this
 

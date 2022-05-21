@@ -15,6 +15,7 @@ class SlopeOne(Regressor):
             self.upload_params()
 
     def fit(self, X: np.array):
+        X = X.to_numpy(dtype=int)
         self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
         if not self.popularity_differences:
             self.build_popularity_difference_dict(X)
@@ -40,10 +41,11 @@ class SlopeOne(Regressor):
                         self.popularity_differences[(j,i)] = (- pd_vec, np.sum(bool_vector, dtype=np.float16))
 
     def predict_on_pair(self, user: int, item: int):
-        user_items = self.matrix[int(user)]
-        if np.isnan(item):
+        # user_items = self.matrix[int(user)]
+        user_items = self.matrix[user]
+        if item == -1:
             return 3 # TODO - check this
-        item = int(item)
+        # item = int(item)
         calc = 0
         total_weight = 0
         for i, rank in enumerate(user_items):

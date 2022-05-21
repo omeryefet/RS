@@ -10,10 +10,6 @@ from collections import defaultdict
 from statistics import mode
 import pickle
 from os import path
-import scipy.stats as st
-import warnings
-warnings.filterwarnings("error")
-
 
 class KnnUserSimilarity(Regressor):
     def __init__(self, config):
@@ -28,7 +24,7 @@ class KnnUserSimilarity(Regressor):
         self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
         if not self.corr:
             self.build_item_to_itm_corr_dict(X)
-            # self.save_params()
+            self.save_params()
 
     def build_item_to_itm_corr_dict(self, data):
         for i in tqdm(range(self.matrix.shape[1])):
@@ -39,28 +35,14 @@ class KnnUserSimilarity(Regressor):
                     bool_vector = np.array(item1 * item2) > 0
                     item1 = item1[bool_vector]
                     item2 = item2[bool_vector]
-                    # print('item1  ',item1)
-                    # print('item2  ',item2)
-                    # print(np.corrcoef(item1,item2)[0,1])
-                    if not any(item1 * item2):
+                    if not any(item1 * item2): # if both of the vectors are empty
                         items_corr = 0
-                    elif np.var(item1) == 0 and np.var(item2) == 0:
+                    elif np.var(item1) == 0 and np.var(item2) == 0: # both of the vectors are not empty but var is 0
                         items_corr = 1
                     elif np.var(item1) == 0 or np.var(item2) == 0:
-                        items_corr = 1
-                    elif any(item1 * item2):
-                        # items_corr = np.random.uniform(-1,1)
-                        try:
-                            items_corr = np.corrcoef(item1,item2)[0,1]
-                        except RuntimeWarning:
-                            # print('item1  ', item1)
-                            # print('item2  ', item2)
-                            import ipdb
-                            ipdb.set_trace()
-                        # items_corr = st.pearsonr(item1,item2)[0]
-                        #items_corr = 1
+                        items_corr = 3 # TODO - check this
                     else:
-                        items_corr = 0
+                        items_corr = np.corrcoef(item1,item2)[0,1]
                     self.corr[i].append((j, items_corr))
                     self.corr[j].append((i, items_corr))
         for item, corr_list in self.corr.items():
@@ -68,15 +50,6 @@ class KnnUserSimilarity(Regressor):
 
     def predict_on_pair(self, user: int, item: int):
         if item != -1:
-            # if item == 409:
-            #     print(user)
-            #     print(item)
-            #     x = self.corr[user]
-            #     k_nearest_users = []
-            #     for i in range(self.k):
-            #         print(self.corr[user])
-            #         z = self.corr[user][i]
-            #         print(z[0])
             items_lst = []
             ranked_idxs = set(np.arange(len(self.matrix.shape[1]))[self.matrix[user,:] > 0])
             for i in self.corr[item]:

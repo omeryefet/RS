@@ -10,6 +10,10 @@ from collections import defaultdict
 from statistics import mode
 import pickle
 from os import path
+import scipy.stats as st
+import warnings
+warnings.filterwarnings("error")
+
 
 class KnnUserSimilarity(Regressor):
     def __init__(self, config):
@@ -27,40 +31,60 @@ class KnnUserSimilarity(Regressor):
             # self.save_params()
 
     def build_item_to_itm_corr_dict(self, data):
-        for i in tqdm(range(self.matrix.shape[0])):
-            for j in range(i+1, self.matrix.shape[0]):
+        for i in tqdm(range(self.matrix.shape[1])):
+            for j in range(i+1, self.matrix.shape[1]):
                 if i != j:
-                    user1 = np.array(self.matrix[i, :], dtype=np.int16)
-                    user2 = np.array(self.matrix[j, :], dtype=np.int16)
-                    bool_vector = np.array(user1 * user2) > 0
-                    user1 = user1[bool_vector]
-                    user2 = user2[bool_vector]
-                    if any(user1 * user2):
-                        #users_corr = np.random.uniform(-1,1)
-                        users_corr = np.corrcoef(user1,user2)[0,1]
-                        #users_corr = 1
+                    item1 = np.array(self.matrix[:, i], dtype=np.int16)
+                    item2 = np.array(self.matrix[:, j], dtype=np.int16)
+                    bool_vector = np.array(item1 * item2) > 0
+                    item1 = item1[bool_vector]
+                    item2 = item2[bool_vector]
+                    # print('item1  ',item1)
+                    # print('item2  ',item2)
+                    # print(np.corrcoef(item1,item2)[0,1])
+                    if not any(item1 * item2):
+                        items_corr = 0
+                    elif np.var(item1) == 0 and np.var(item2) == 0:
+                        items_corr = 1
+                    elif np.var(item1) == 0 or np.var(item2) == 0:
+                        items_corr = 1
+                    elif any(item1 * item2):
+                        # items_corr = np.random.uniform(-1,1)
+                        try:
+                            items_corr = np.corrcoef(item1,item2)[0,1]
+                        except RuntimeWarning:
+                            # print('item1  ', item1)
+                            # print('item2  ', item2)
+                            import ipdb
+                            ipdb.set_trace()
+                        # items_corr = st.pearsonr(item1,item2)[0]
+                        #items_corr = 1
                     else:
-                        users_corr = 0
-                    self.corr[i].append((j, users_corr))
-                    self.corr[j].append((i, users_corr))
-        for user, corr_list in self.corr.items():
-            self.corr[user] = sorted(corr_list, key = lambda x: x[1], reverse=True)
+                        items_corr = 0
+                    self.corr[i].append((j, items_corr))
+                    self.corr[j].append((i, items_corr))
+        for item, corr_list in self.corr.items():
+            self.corr[item] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 
     def predict_on_pair(self, user: int, item: int):
         if item != -1:
-            if item == 409:
-                print(user)
-                print(item)
-                x = self.corr[user]
-                k_nearest_users = []
-                for i in range(self.k):
-                    print(self.corr[user])
-                    z = self.corr[user][i]
-                    print(z[0])
-
-            #k_nearest_users = [self.corr[user][i][0] for i in range(self.k)]
-            #return mode(k_nearest_users)
-            return 1
+            # if item == 409:
+            #     print(user)
+            #     print(item)
+            #     x = self.corr[user]
+            #     k_nearest_users = []
+            #     for i in range(self.k):
+            #         print(self.corr[user])
+            #         z = self.corr[user][i]
+            #         print(z[0])
+            items_lst = []
+            ranked_idxs = set(np.arange(len(self.matrix.shape[1]))[self.matrix[user,:] > 0])
+            for i in self.corr[item]:
+                if i[0] in ranked_idxs:
+                    items_lst.append(self.matrix[user,i[0]])
+                if len(items_lst) == self.k:
+                    break
+            return mode(items_lst)
         else:
             return 3 # TODO - check this
 

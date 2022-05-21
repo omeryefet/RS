@@ -39,6 +39,6 @@ class Config:
 
 
 # from scipy.sparse import csc_matrix
-# data = get_data()[1]
+# data = get_data()[0]
 # matrix = csc_matrix((data[:, RATINGS_COL_INDEX], (data[:, USERS_COL_INDEX], data[:, ITEMS_COL_INDEX]))).toarray()
-# print(data)
+# print(data.shape)

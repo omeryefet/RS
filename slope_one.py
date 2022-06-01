@@ -15,7 +15,6 @@ class SlopeOne(Regressor):
             self.upload_params()
 
     def fit(self, X: np.array):
-        X = X.to_numpy(dtype=int)
         self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
         if not self.popularity_differences:
             self.build_popularity_difference_dict(X)

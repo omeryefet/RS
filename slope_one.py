@@ -27,29 +27,27 @@ class SlopeOne(Regressor):
             for j in range(self.matrix.shape[1]):
                 if not self.popularity_differences.get((i,j)):
                     if i != j:
-                        item1 = np.array(self.matrix[:,i], dtype=np.int16)
-                        item2 = np.array(self.matrix[:,j], dtype=np.int16)
-                        values_vector = np.array(item1 - item2, dtype=np.int16)
+                        item1 = np.array(self.matrix[:,i]) # dtype=np.int16)
+                        item2 = np.array(self.matrix[:,j]) # dtype=np.int16)
+                        values_vector = np.array(item1 - item2) # dtype=np.int16)
                         bool_vector = np.array(item1 * item2) > 0
-                        bool_vec_sum = np.sum(bool_vector)
+                        bool_vec_sum = np.sum(bool_vector) # dtype=np.float16)
                         if bool_vec_sum != 0:
-                            pd_vec = np.sum(values_vector * bool_vector, dtype=np.float32) / bool_vec_sum
+                            pd_vec = np.sum(values_vector * bool_vector) / bool_vec_sum
                         else:
                             pd_vec = 0  # Not a single user that ranked both items # TODO - check this
-                        self.popularity_differences[(i,j)] = (pd_vec, np.sum(bool_vector, dtype=np.float16))
-                        self.popularity_differences[(j,i)] = (- pd_vec, np.sum(bool_vector, dtype=np.float16))
+                        self.popularity_differences[(i,j)] = (pd_vec, bool_vec_sum)
+                        self.popularity_differences[(j,i)] = (- pd_vec, bool_vec_sum)
 
     def predict_on_pair(self, user: int, item: int):
-        # user_items = self.matrix[int(user)]
         user_items = self.matrix[user]
         if item == -1:
-            return 3 # TODO - check this
-        # item = int(item)
+            return np.mean(user_items) # TODO - check this
         calc = 0
         total_weight = 0
         for i, rank in enumerate(user_items):
             if rank != 0:
-                calc += (user_items[i] + self.popularity_differences[(item, i)][0]) * self.popularity_differences[(item,i)][1]
+                calc += (rank + self.popularity_differences[(item, i)][0]) * self.popularity_differences[(item,i)][1]
                 total_weight += self.popularity_differences[(item, i)][1]
         return calc/total_weight
 

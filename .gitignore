@@ -1,3 +1,5 @@
 .idea
 popularity_differences.pickle
+simple_mean.pickle
+correlation_params.pickle
 __pycache__

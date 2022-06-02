@@ -16,6 +16,8 @@ class KnnUserSimilarity(Regressor):
         self.matrix = None
         self.corr = defaultdict(list)
         self.k = config.k
+        if path.exists(SIMPLE_MEAN_PATH):
+            self.upload_params()
 
     def fit(self, X: np.array):
         self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
@@ -39,10 +41,11 @@ class KnnUserSimilarity(Regressor):
                         users_corr = 0
                     else:
                         users_corr = np.corrcoef(user1,user2)[0,1]
-                    self.corr[i].append((j, users_corr))
-                    self.corr[j].append((i, users_corr))
-        for item, corr_list in self.corr.items():
-            self.corr[item] = sorted(corr_list, key = lambda x: x[1], reverse=True)
+                    if users_corr >= 0:
+                        self.corr[i].append((j, users_corr))
+                        self.corr[j].append((i, users_corr))
+        for user, corr_list in self.corr.items():
+            self.corr[user] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 
     def predict_on_pair(self, user: int, item: int):
         if item != -1:
@@ -55,12 +58,13 @@ class KnnUserSimilarity(Regressor):
                     break
             if users_lst:
                 return np.mean(users_lst)
-            return 0
+            return self.user_means[user]
         else:
-            return np.mean(self.matrix[user,:])
+            return self.user_means[user]
 
     def upload_params(self):
-        pass
+        with open(SIMPLE_MEAN_PATH, 'rb') as file:
+            self.user_means = pickle.load(file)
 
 if __name__ == '__main__':
     knn_config = Config(k=10)

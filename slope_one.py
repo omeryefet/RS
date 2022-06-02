@@ -47,7 +47,12 @@ class SlopeOne(Regressor):
             if rank != 0:
                 calc += (rank + self.popularity_differences[(item, i)][0]) * self.popularity_differences[(item,i)][1]
                 total_weight += self.popularity_differences[(item, i)][1]
-        return calc/total_weight
+        if (calc/total_weight) > 5:
+            return 5
+        elif (calc/total_weight) < 0:
+            return 0 # TODO check
+        else:
+            return calc/total_weight
 
     def upload_params(self):
         with open(POPULARITY_DIFFERENCES_PARAMS_FILE_PATH, 'rb') as file:

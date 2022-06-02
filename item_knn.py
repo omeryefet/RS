@@ -9,6 +9,7 @@ from scipy.sparse import csc_matrix
 from config import *
 from os import path
 import pickle
+from collections import defaultdict
 import csv
 from scipy.sparse import coo_matrix
 from tqdm import tqdm
@@ -17,54 +18,62 @@ import math
 
 class KnnItemSimilarity(Regressor):
     def __init__(self, config):
-        # self.corr_matrix = None  # The similarity matrix for all the pairs of items
+        self.matrix = None
+        self.corr = defaultdict(list)
         self.k = config.k
-        self.n_users = None
-        self.n_items = None
-        # self.item_avg_rank = None  # The average rating for each item
-        # self.sim_matrix = None  # Similarity matrix but with sparse matrix
-        # self.rank_matrix = None  # Matrix with users in rows, items in columns and rating as the value
-        # self.rank_matrix_spars = None  # The same matrix as before but with sparse matrix
-        # self.user_avg_rank = None  # # The average rating for each user
-        if path.exists(CORRELATION_PARAMS_FILE_PATH):
+        if path.exists(CORRELATION_PARAMS_FILE_PATH) and path.exists(SIMPLE_MEAN_PATH):
             self.upload_params()
 
     def fit(self, X: np.array):
-        self.n_users = X[USER_COL].nunique()
-        self.n_items = X[ITEM_COL].nunique()
-        self.corr_matrix = np.zeros((self.n_items, self.n_items))
-        self.user_avg_rank = X.groupby(USER_COL)[RATING_COL].mean()                     # The average rating for each user
-        self.item_avg_rank = X.groupby(ITEM_COL)[RATING_COL].mean()                     # The average rating for each item
-        self.rank_matrix = train.pivot(index=USER_COL, columns=ITEM_COL, values=RATING_COL)  # Create matrix with users in rows, items in columns and rating as the value
-        self.rank_matrix_spars = csr_matrix(self.rank_matrix)                          # Save the matrix in sparse matrix
-        if path.exists(CORRELATION_PARAMS_FILE_PATH):
-            self.upload_params()
-            spars_df = self.sim_matrix.toarray()  # Transform the similarity sparse matrix to numpy_array
-            for i in range(spars_df.shape[0]):
-                item1 = spars_df[i, 0]
-                item2 = spars_df[i, 1]
-                self.corr_matrix[int(item1), int(item2)] = spars_df[i, 2]  # Save the similarity in corr_matrix from the csv file- include items with no similarity
-            self.corr_matrix = self.corr_matrix + self.corr_matrix.T  # Similarity for (x,y) is the same as (y,x)
-            self.corr_matrix = np.nan_to_num(self.corr_matrix)  # Change nan to 0
-        else:
-            self.build_item_to_itm_corr_dict()
+        self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
+        if not self.corr:
+            self.build_item_to_item_corr_dict(X)
             self.save_params()
 
-        # if not self.corr:
-        #     self.build_user_to_user_corr_dict(X)
-        #     self.save_params()
-
-    def build_item_to_itm_corr_dict(self, data):
-        raise NotImplementedError
+    def build_item_to_item_corr_dict(self, data):
+        for i in tqdm(range(self.matrix.shape[1])):
+            for j in range(i+1, self.matrix.shape[1]):
+                if i != j:
+                    item1 = np.array(self.matrix[:, i])
+                    item2 = np.array(self.matrix[:, j])
+                    bool_vector = np.array(item1 * item2) > 0
+                    item1 = item1[bool_vector]
+                    item2 = item2[bool_vector]
+                    if not any(item1 * item2): # if both of the vectors are empty
+                        items_corr = 0
+                    elif np.var(item1) == 0 and np.var(item2) == 0: # both of the vectors are not empty but var is 0
+                        items_corr = 1
+                    elif np.var(item1) == 0 or np.var(item2) == 0: # one of the vectors are not empty but var is 0
+                        items_corr = 0
+                    else:
+                        items_corr = np.corrcoef(item1,item2)[0,1]
+                    if items_corr >= 0:
+                        self.corr[i].append((j, items_corr))
+                        self.corr[j].append((i, items_corr))
+        for item, corr_list in self.corr.items():
+            self.corr[item] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 
 
     def predict_on_pair(self, user, item):
-        raise NotImplementedError
-
+        if item != -1:
+            items_lst = []
+            ranked_idxs = np.arange(self.matrix.shape[1])[self.matrix[user,:] > 0]
+            for i in self.corr[item]:
+                if i[0] in ranked_idxs:
+                    items_lst.append(self.matrix[user,i[0]])
+                if len(items_lst) == self.k:
+                    break
+            if items_lst:
+                return np.mean(items_lst)
+            return self.user_means[user]
+        else:
+            return self.user_means[user]
 
     def upload_params(self):
         with open(CORRELATION_PARAMS_FILE_PATH, 'rb') as file:
             self.corr = pickle.load(file)
+        with open(SIMPLE_MEAN_PATH, 'rb') as file:
+            self.user_means = pickle.load(file)
 
     def save_params(self):
         with open(CORRELATION_PARAMS_FILE_PATH, 'wb') as file:

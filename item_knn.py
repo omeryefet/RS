@@ -8,6 +8,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse import csc_matrix
 from config import *
 from os import path
+import pickle
 import csv
 from scipy.sparse import coo_matrix
 from tqdm import tqdm
@@ -25,6 +26,8 @@ class KnnItemSimilarity(Regressor):
         # self.rank_matrix = None  # Matrix with users in rows, items in columns and rating as the value
         # self.rank_matrix_spars = None  # The same matrix as before but with sparse matrix
         # self.user_avg_rank = None  # # The average rating for each user
+        if path.exists(CORRELATION_PARAMS_FILE_PATH):
+            self.upload_params()
 
     def fit(self, X: np.array):
         self.n_users = X[USER_COL].nunique()
@@ -47,7 +50,11 @@ class KnnItemSimilarity(Regressor):
             self.build_item_to_itm_corr_dict()
             self.save_params()
 
-    def build_user_to_user_corr_dict(self, data):
+        # if not self.corr:
+        #     self.build_user_to_user_corr_dict(X)
+        #     self.save_params()
+
+    def build_item_to_itm_corr_dict(self, data):
         raise NotImplementedError
 
 
@@ -56,12 +63,12 @@ class KnnItemSimilarity(Regressor):
 
 
     def upload_params(self):
-        raise NotImplementedError
-
+        with open(CORRELATION_PARAMS_FILE_PATH, 'rb') as file:
+            self.corr = pickle.load(file)
 
     def save_params(self):
-        raise NotImplementedError
-
+        with open(CORRELATION_PARAMS_FILE_PATH, 'wb') as file:
+            pickle.dump(self.corr, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
     knn_config = Config(k=25)

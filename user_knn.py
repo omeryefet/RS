@@ -16,63 +16,56 @@ class KnnUserSimilarity(Regressor):
         self.matrix = None
         self.corr = defaultdict(list)
         self.k = config.k
-        if path.exists(CORRELATION_PARAMS_FILE_PATH):
-            self.upload_params()
 
     def fit(self, X: np.array):
-        X = X.to_numpy(dtype=int)
         self.matrix = csc_matrix((X[:, RATINGS_COL_INDEX], (X[:, USERS_COL_INDEX],X[:, ITEMS_COL_INDEX]))).toarray()
         if not self.corr:
-            self.build_item_to_itm_corr_dict(X)
-            self.save_params()
+            self.build_user_to_user_corr_dict(X)
 
-    def build_item_to_itm_corr_dict(self, data):
-        for i in tqdm(range(self.matrix.shape[1])):
-            for j in range(i+1, self.matrix.shape[1]):
+    def build_user_to_user_corr_dict(self, data):
+        for i in tqdm(range(self.matrix.shape[0])):
+            for j in range(i+1, self.matrix.shape[0]):
                 if i != j:
-                    item1 = np.array(self.matrix[:, i], dtype=np.int16)
-                    item2 = np.array(self.matrix[:, j], dtype=np.int16)
-                    bool_vector = np.array(item1 * item2) > 0
-                    item1 = item1[bool_vector]
-                    item2 = item2[bool_vector]
-                    if not any(item1 * item2): # if both of the vectors are empty
-                        items_corr = 0
-                    elif np.var(item1) == 0 and np.var(item2) == 0: # both of the vectors are not empty but var is 0
-                        items_corr = 1
-                    elif np.var(item1) == 0 or np.var(item2) == 0:
-                        items_corr = 3 # TODO - check this
+                    user1 = np.array(self.matrix[i, :])
+                    user2 = np.array(self.matrix[j, :])
+                    bool_vector = np.array(user1 * user2) > 0
+                    user1 = user1[bool_vector]
+                    user2 = user2[bool_vector]
+                    if not any(user1 * user2): # if both of the vectors are empty
+                        users_corr = 0
+                    elif np.var(user1) == 0 and np.var(user2) == 0: # both of the vectors are not empty but var is 0
+                        users_corr = 1
+                    elif np.var(user1) == 0 or np.var(user2) == 0: # one of the vectors are not empty but var is 0
+                        users_corr = 0
                     else:
-                        items_corr = np.corrcoef(item1,item2)[0,1]
-                    self.corr[i].append((j, items_corr))
-                    self.corr[j].append((i, items_corr))
+                        users_corr = np.corrcoef(user1,user2)[0,1]
+                    self.corr[i].append((j, users_corr))
+                    self.corr[j].append((i, users_corr))
         for item, corr_list in self.corr.items():
             self.corr[item] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 
     def predict_on_pair(self, user: int, item: int):
         if item != -1:
-            items_lst = []
-            ranked_idxs = set(np.arange(len(self.matrix.shape[1]))[self.matrix[user,:] > 0])
-            for i in self.corr[item]:
+            users_lst = []
+            ranked_idxs = np.arange(self.matrix.shape[0])[self.matrix[:,item] > 0]
+            for i in self.corr[user]:
                 if i[0] in ranked_idxs:
-                    items_lst.append(self.matrix[user,i[0]])
-                if len(items_lst) == self.k:
+                    users_lst.append(self.matrix[i[0],item])
+                if len(users_lst) == self.k:
                     break
-            return mode(items_lst)
+            if users_lst:
+                return np.mean(users_lst)
+            return 0
         else:
-            return 3 # TODO - check this
+            return np.mean(self.matrix[user,:])
 
     def upload_params(self):
-        with open(CORRELATION_PARAMS_FILE_PATH, 'rb') as file:
-            self.corr = pickle.load(file)
-
-    def save_params(self):
-        with open(CORRELATION_PARAMS_FILE_PATH, 'wb') as file:
-            pickle.dump(self.corr, file, protocol=pickle.HIGHEST_PROTOCOL)
+        pass
 
 if __name__ == '__main__':
     knn_config = Config(k=10)
     train, validation = get_data()
-    train = train.iloc[:200000, :]
+    train = train[:200000, :]
     knn = KnnUserSimilarity(knn_config)
     knn.fit(train)
     print(knn.calculate_rmse(validation))
@@ -94,3 +87,4 @@ if __name__ == '__main__':
 # # print(df2)
 # f=df1.corrwith(df2,method='pearson')
 # print(f)
+

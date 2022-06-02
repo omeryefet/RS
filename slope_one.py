@@ -21,8 +21,6 @@ class SlopeOne(Regressor):
             self.save_params()
 
     def build_popularity_difference_dict(self, data):
-        #self.matrix = csc_matrix((data[:, RATINGS_COL_INDEX], (data[:, USERS_COL_INDEX], data[:, ITEMS_COL_INDEX]))).toarray()
-        #self.matrix = np.array([[5,3,2],[3,4,0],[0,2,5]])
         for i in tqdm(range(self.matrix.shape[1])):
             for j in range(self.matrix.shape[1]):
                 if not self.popularity_differences.get((i,j)):

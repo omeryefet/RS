@@ -40,7 +40,7 @@ class SlopeOne(Regressor):
     def predict_on_pair(self, user: int, item: int):
         user_items = self.matrix[user]
         if item == -1:
-            return np.mean(user_items) # TODO - check this
+            return np.mean(user_items)
         calc = 0
         total_weight = 0
         for i, rank in enumerate(user_items):
@@ -50,7 +50,7 @@ class SlopeOne(Regressor):
         if (calc/total_weight) > 5:
             return 5
         elif (calc/total_weight) < 0:
-            return 0 # TODO check
+            return 0
         else:
             return calc/total_weight
 

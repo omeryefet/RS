@@ -31,21 +31,6 @@ def get_data():
 
     train.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL,ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
 
-    # Delete
-    # # ##### 2 #####
-    # train[USER_COL_NAME_IN_DATAEST] = train[USER_COL_NAME_IN_DATAEST] - 1  #changing the user ids from 0 to n-1 by decreasing all by 1 - Train
-    # validation[USER_COL_NAME_IN_DATAEST] = validation[USER_COL_NAME_IN_DATAEST] - 1  #changing the user ids from 0 to n-1 by decreasing all by 1 - Validation
-    # unique_items = list(train[ITEM_COL_NAME_IN_DATASET].unique()) #list of unique items from train data
-    # index_to_change = validation[validation[ITEM_COL_NAME_IN_DATASET].isin(unique_items) == False].index  #holding the rows in validation data that have an item that doesnt exists in train data
-    # # validation[ITEM_COL_NAME_IN_DATASET][index_to_change] = -1
-    # print(index_to_change)
-    # sorted_item_unique = sorted(unique_items) #list of sorted unique items from train data
-    # new_items_ids = list(range(len(sorted_item_unique))) #list of new item ids (in ascending and continuous order)
-    # train[ITEM_COL_NAME_IN_DATASET].replace(sorted_item_unique, new_items_ids, inplace=True) #replacing each unique item with a new item id (in ascending and continuous order) - Train
-    # train.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL,ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
-    # validation[ITEM_COL_NAME_IN_DATASET].replace(sorted_item_unique, new_items_ids, inplace=True)   #replacing each unique item with a new item id (in ascending and continuous order) - Validation
-    # ##### 2 #####
-
     train = train.to_numpy(dtype=int)
     validation = validation.to_numpy(dtype=int)
     return train, validation

@@ -33,23 +33,22 @@ class KnnItemSimilarity(Regressor):
     def build_item_to_item_corr_dict(self, data):
         for i in tqdm(range(self.matrix.shape[1])):
             for j in range(i+1, self.matrix.shape[1]):
-                if i != j:
-                    item1 = np.array(self.matrix[:, i])
-                    item2 = np.array(self.matrix[:, j])
-                    bool_vector = np.array(item1 * item2) > 0
-                    item1 = item1[bool_vector]
-                    item2 = item2[bool_vector]
-                    if not any(item1 * item2): # if both of the vectors are empty
-                        items_corr = 0
-                    elif np.var(item1) == 0 and np.var(item2) == 0: # both of the vectors are not empty but var is 0
-                        items_corr = 1
-                    elif np.var(item1) == 0 or np.var(item2) == 0: # one of the vectors are not empty but var is 0
-                        items_corr = 0
-                    else:
-                        items_corr = np.corrcoef(item1,item2)[0,1]
-                    if items_corr >= 0:
-                        self.corr[i].append((j, items_corr))
-                        self.corr[j].append((i, items_corr))
+                item1 = np.array(self.matrix[:, i])
+                item2 = np.array(self.matrix[:, j])
+                bool_vector = np.array(item1 * item2) > 0
+                item1 = item1[bool_vector]
+                item2 = item2[bool_vector]
+                if not any(item1 * item2): # if both of the vectors are empty
+                    items_corr = 0
+                elif np.var(item1) == 0 and np.var(item2) == 0: # both of the vectors are not empty but var is 0
+                    items_corr = 1
+                elif np.var(item1) == 0 or np.var(item2) == 0: # one of the vectors are not empty but var is 0
+                    items_corr = 0
+                else:
+                    items_corr = np.corrcoef(item1,item2)[0,1]
+                if items_corr >= 0:
+                    self.corr[i].append((j, items_corr))
+                    self.corr[j].append((i, items_corr))
         for item, corr_list in self.corr.items():
             self.corr[item] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 

@@ -47,7 +47,7 @@ class MatrixFactorization(Regressor):
         self.item_biases = np.zeros(self.n_items)         # initializing to a vector with zeroes (length = num of unique items)
         self.pu = np.random.rand(self.n_users, self.k)    # initializing to a matrix with random values (num of unique users as rows, k as columns)
         self.qi = np.random.rand(self.k, self.n_items)    # initializing to a matrix with random values (k as rows, num of unique items as columns)
-        while self.current_epoch < self.epochs:
+        while self.current_epoch <= self.epochs:
             self.run_epoch(X)
             train_rmse = self.calculate_rmse(X)
             train_mse = np.square(train_rmse)

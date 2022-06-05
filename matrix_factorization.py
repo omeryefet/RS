@@ -19,7 +19,7 @@ class MatrixFactorization(Regressor):
         self.user_biases = None                           # b_u (users) vector
         self.item_biases = None                           # b_i (items) vector
         self.current_epoch = 1
-        self.global_bias = None                           # will hold mean of all ratings
+        self.mu = None                           # will hold mean of all ratings
         self.q_mul_p = None
 
     def record(self, covn_dict):
@@ -33,16 +33,16 @@ class MatrixFactorization(Regressor):
         print(temp)
 
     def calc_regularization(self):
-        sum_biases_users_square = sum(self.user_biases ** 2)
-        sum_biases_items_square = sum(self.item_biases ** 2)
-        sum_p_users_square = sum(sum(self.pu ** 2))
-        sum_q_items_square = sum(sum(self.qi ** 2))
+        sum_p_users_square = np.sum(self.pu ** 2)
+        sum_q_items_square = np.sum(self.qi ** 2)
+        sum_biases_users_square = np.sum(self.user_biases ** 2)
+        sum_biases_items_square = np.sum(self.item_biases ** 2)
         return self.gamma * (sum_biases_users_square + sum_biases_items_square + sum_p_users_square + sum_q_items_square)
 
     def fit(self, X):
         self.n_users = len(np.unique(X[:,0]))
         self.n_items = len(np.unique(X[:,1]))
-        self.global_bias = np.mean(X[:,2])
+        self.mu = np.mean(X[:,2])
         self.user_biases = np.zeros(self.n_users)         # initializing to a vector with zeroes (length = num of unique users)
         self.item_biases = np.zeros(self.n_items)         # initializing to a vector with zeroes (length = num of unique items)
         self.pu = np.random.rand(self.n_users, self.k)    # initializing to a matrix with random values (num of unique users as rows, k as columns)
@@ -60,7 +60,7 @@ class MatrixFactorization(Regressor):
         for row in data:
             user, item, rating = row
             qi_pu = self.pu[user, :].dot(self.qi[:, item])
-            error = rating - (self.global_bias + self.user_biases[user] + self.item_biases[item] + qi_pu)
+            error = rating - (self.mu + self.user_biases[user] + self.item_biases[item] + qi_pu)
             self.user_biases[user] += self.lr * (error - self.gamma * self.user_biases[user])                  # updating bu for specific user
             self.item_biases[item] += self.lr * (error - self.gamma * self.item_biases[item])                  # updating bi for specific item
             self.pu[user, :] += self.lr * (error * self.qi[:, item] - self.gamma * self.pu[user, :])           # updating pu for specific user and all k dimensions
@@ -70,9 +70,9 @@ class MatrixFactorization(Regressor):
 
     def predict_on_pair(self, user, item):
         if item == -1:
-            return self.global_bias + self.user_biases[user]
+            return self.mu + self.user_biases[user]
         else:
-            return self.global_bias + self.user_biases[user] + self.item_biases[item] + self.q_mul_p[user, item] # prediction (for specific user and specific item)
+            return self.mu + self.user_biases[user] + self.item_biases[item] + self.q_mul_p[user, item] # prediction (for specific user and specific item)
 
 
 if __name__ == '__main__':

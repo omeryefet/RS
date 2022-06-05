@@ -46,14 +46,6 @@ class KnnUserSimilarity(Regressor):
         for user, corr_list in self.corr.items():
             self.corr[user] = sorted(corr_list, key = lambda x: x[1], reverse=True)
 
-        counter = 0
-        for i,j in self.corr.items():
-            counter += len(self.corr[i])
-            print(len(self.corr[i]))
-        print(self.matrix.shape)
-        print('counter',counter)
-
-
     def predict_on_pair(self, user: int, item: int):
         if item != -1:
             users_lst = []

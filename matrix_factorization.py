@@ -8,21 +8,21 @@ from tqdm import tqdm
 
 class MatrixFactorization(Regressor):
     def __init__(self, config):
-        self.lr = config.lr
-        self.gamma = config.gamma
-        self.epochs = config.epochs
-        self.k = config.k
-        self.pu = None                                    # p_u (users) matrix
-        self.qi = None                                    # q_i (items) matrix
-        self.n_users = None                               # will hold number of unique users
-        self.n_items = None                               # will hold number of unique items
-        self.user_biases = None                           # b_u (users) vector
-        self.item_biases = None                           # b_i (items) vector
-        self.current_epoch = 1
-        self.mu = None                           # will hold mean of all ratings
-        self.q_mul_p = None
+        self.lr = config.lr # learning rate
+        self.gamma = config.gamma # gamma (regularization parameter)
+        self.epochs = config.epochs # number of epoch to train
+        self.k = config.k # holds the number of dimensions of the new vectors
+        self.pu = None # p_u matrix (users)
+        self.qi = None # q_i matrix (items)
+        self.n_users = None # holds the number of users
+        self.n_items = None # holds the number of items
+        self.user_biases = None # b_u vector (users)
+        self.item_biases = None # b_i vector (items)
+        self.current_epoch = 1 # holds the number of the current epoch
+        self.mu = None # holds the mean of all ratings
+        self.q_mul_p = None # holds the multiple of qi and pu
 
-    def record(self, covn_dict):
+    def record(self, covn_dict): # print the values of 3 measures
         epoch = '{:02d}'.format(self.current_epoch)
         temp = f'| epoch # {epoch} :'
         for key, value in covn_dict.items():
@@ -32,7 +32,7 @@ class MatrixFactorization(Regressor):
             temp += result
         print(temp)
 
-    def calc_regularization(self):
+    def calc_regularization(self): # calculate the regularization of pu,qi,bu,bi
         sum_p_users_square = np.sum(self.pu ** 2)
         sum_q_items_square = np.sum(self.qi ** 2)
         sum_biases_users_square = np.sum(self.user_biases ** 2)
@@ -40,18 +40,18 @@ class MatrixFactorization(Regressor):
         return self.gamma * (sum_biases_users_square + sum_biases_items_square + sum_p_users_square + sum_q_items_square)
 
     def fit(self, X):
-        self.n_users = len(np.unique(X[:,0]))
-        self.n_items = len(np.unique(X[:,1]))
-        self.mu = np.mean(X[:,2])
-        self.user_biases = np.zeros(self.n_users)         # initializing to a vector with zeroes (length = num of unique users)
-        self.item_biases = np.zeros(self.n_items)         # initializing to a vector with zeroes (length = num of unique items)
-        self.pu = np.random.rand(self.n_users, self.k)    # initializing to a matrix with random values (num of unique users as rows, k as columns)
-        self.qi = np.random.rand(self.k, self.n_items)    # initializing to a matrix with random values (k as rows, num of unique items as columns)
-        while self.current_epoch <= self.epochs:
+        self.n_users = len(np.unique(X[:,0])) # number of unique users
+        self.n_items = len(np.unique(X[:,1])) # number of unique items
+        self.mu = np.mean(X[:,2]) # mean of ratings
+        self.user_biases = np.zeros(self.n_users) # initializing a vector of zeroes (users)
+        self.item_biases = np.zeros(self.n_items) # initializing a vector of zeroes (items)
+        self.pu = np.random.rand(self.n_users, self.k) # initializing a matrix with random values (number of unique users X k)
+        self.qi = np.random.rand(self.k, self.n_items) # initializing a matrix with random values (k X number of unique items)
+        while self.current_epoch <= self.epochs: # run over number of epochs
             self.run_epoch(X)
-            train_rmse = self.calculate_rmse(X)
-            train_mse = np.square(train_rmse)
-            train_objective = train_mse * X.shape[0] + self.calc_regularization()
+            train_rmse = self.calculate_rmse(X) # calculate the RMSE
+            train_mse = np.square(train_rmse) # calculate the MSE
+            train_objective = train_mse * X.shape[0] + self.calc_regularization() # calculate the objective
             epoch_convergence = {"Train RMSE": train_rmse, "Train MSE": train_mse, "Train Objective": train_objective}
             self.record(epoch_convergence)
             self.current_epoch += 1
@@ -60,19 +60,31 @@ class MatrixFactorization(Regressor):
         for row in data:
             user, item, rating = row
             qi_pu = self.pu[user, :].dot(self.qi[:, item])
-            error = rating - (self.mu + self.user_biases[user] + self.item_biases[item] + qi_pu)
-            self.user_biases[user] += self.lr * (error - self.gamma * self.user_biases[user])                  # updating bu for specific user
-            self.item_biases[item] += self.lr * (error - self.gamma * self.item_biases[item])                  # updating bi for specific item
-            self.pu[user, :] += self.lr * (error * self.qi[:, item] - self.gamma * self.pu[user, :])           # updating pu for specific user and all k dimensions
-            self.qi[:, item] += self.lr * (error * self.pu[user, :] - self.gamma * self.qi[:, item])           # updating qi for specific item and all k dimensions
+            error = rating - (self.mu + self.user_biases[user] + self.item_biases[item] + qi_pu) # calculate the error of prediction
+            self.user_biases[user] += self.lr * (error - self.gamma * self.user_biases[user]) # updating bu for a specific user
+            self.item_biases[item] += self.lr * (error - self.gamma * self.item_biases[item]) # updating bi for specific item
+            self.pu[user, :] += self.lr * (error * self.qi[:, item] - self.gamma * self.pu[user, :]) # updating pu for specific user and k dimensions
+            self.qi[:, item] += self.lr * (error * self.pu[user, :] - self.gamma * self.qi[:, item]) # updating qi for specific item and k dimensions
         self.q_mul_p = self.pu.dot(self.qi)
 
 
     def predict_on_pair(self, user, item):
-        if item == -1:
-            return self.mu + self.user_biases[user]
-        else:
-            return self.mu + self.user_biases[user] + self.item_biases[item] + self.q_mul_p[user, item] # prediction (for specific user and specific item)
+        if item == -1: # if the item does not exist on the train set
+            predict = self.mu + self.user_biases[user] # mean rating + user bias
+            if predict > 5:
+                return 5
+            elif predict < 0:
+                return 0
+            else:
+                return predict
+        else: # return the mean rating + user bias + item bias + value of user-item multiplied vector
+            predict = self.mu + self.user_biases[user] + self.item_biases[item] + self.q_mul_p[user, item] # prediction (for specific user and specific item)
+            if predict > 5:
+                return 5
+            elif predict < 0:
+                return 0
+            else:
+                return predict
 
 
 if __name__ == '__main__':

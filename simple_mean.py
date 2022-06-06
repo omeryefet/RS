@@ -9,8 +9,8 @@ class SimpleMean(Regressor):
         self.user_means = {}
 
     def fit(self, X):
-        Y = pd.DataFrame(X, columns = [USER_COL,ITEM_COL,RATING_COL])
-        self.user_means = Y.groupby([USER_COL])[RATING_COL].mean().to_dict()
+        Y = pd.DataFrame(X, columns = [USER_COL,ITEM_COL,RATING_COL]) # rechange the data into a dataframe again in order to use groupby function
+        self.user_means = Y.groupby([USER_COL])[RATING_COL].mean().to_dict() # make a dictionary with the user number as key and the mean rating as value
         self.save_params()
 
     def predict_on_pair(self, user: int, item: int):

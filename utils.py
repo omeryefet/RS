@@ -10,27 +10,27 @@ def get_data():
     if in the validation set there is an index that does not appear in the train set then we can put np.nan or
      other indicator that tells us that.
     """
-
+    # load the data
     train = pd.read_csv(TRAIN_PATH)
     validation = pd.read_csv(VALIDATION_PATH)
-
+    # prepare the indexes lists of 'user' and 'item' columns (before anf after the change)
     unique_list_user_id_train_after = list(range(train[USER_COL_NAME_IN_DATAEST].nunique()))
     unique_list_item_id_train_after = list(range(train[ITEM_COL_NAME_IN_DATASET].nunique()))
     unique_list_user_id_train_before = sorted(list(train[USER_COL_NAME_IN_DATAEST].unique()))
     unique_list_item_id_train_before = sorted(list(train[ITEM_COL_NAME_IN_DATASET].unique()))
-
+    # replace values of 'user' or 'item' that appears only in the validation set to -1
     index_to_change_item = validation[validation[ITEM_COL_NAME_IN_DATASET].isin(list(train[ITEM_COL_NAME_IN_DATASET].unique())) == False].index
     validation[ITEM_COL_NAME_IN_DATASET][index_to_change_item] = -1
     index_to_change_user = validation[validation[USER_COL_NAME_IN_DATAEST].isin(list(train[USER_COL_NAME_IN_DATAEST].unique())) == False].index
     validation[USER_COL_NAME_IN_DATAEST][index_to_change_user] = -1
-
+    # change the indexes with the lists above
     train[USER_COL_NAME_IN_DATAEST].replace(unique_list_user_id_train_before , unique_list_user_id_train_after , inplace=True)
     validation[USER_COL_NAME_IN_DATAEST].replace(unique_list_user_id_train_before , unique_list_user_id_train_after , inplace=True)
     train[ITEM_COL_NAME_IN_DATASET].replace(unique_list_item_id_train_before , unique_list_item_id_train_after , inplace=True)
     validation[ITEM_COL_NAME_IN_DATASET].replace(unique_list_item_id_train_before , unique_list_item_id_train_after , inplace=True)
-
+    # rename the columns names to shorter ones
     train.rename(columns={USER_COL_NAME_IN_DATAEST: USER_COL,ITEM_COL_NAME_IN_DATASET: ITEM_COL, RATING_COL_NAME_IN_DATASET:RATING_COL}, inplace=True)
-
+    # save the data into array and change the type of the values to int in order to save memory
     train = train.to_numpy(dtype=int)
     validation = validation.to_numpy(dtype=int)
     return train, validation
